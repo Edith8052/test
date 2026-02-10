@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商家入驻平台 - 原型演示</title>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Pricing Card Hover Effect */
+        .pricing-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Icons ---
+        const Icon = ({ size = 24, className = "", children }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
+        );
+
+        const Store = (props) => <Icon {...props}><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2v0a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12v0a2 2 0 0 1-2-2V7"/></Icon>;
+        const CheckCircle = (props) => <Icon {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></Icon>;
+        const Upload = (props) => <Icon {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></Icon>;
+        const Building2 = (props) => <Icon {...props}><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></Icon>;
+        const User = (props) => <Icon {...props}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></Icon>;
+        const ChevronRight = (props) => <Icon {...props}><path d="m9 18 6-6-6-6"/></Icon>;
+        const AlertCircle = (props) => <Icon {...props}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></Icon>;
+        const Clock = (props) => <Icon {...props}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>;
+        const FileText = (props) => <Icon {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></Icon>;
+        const CreditCard = (props) => <Icon {...props}><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></Icon>;
+        const ShieldCheck = (props) => <Icon {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></Icon>;
+        const LogOut = (props) => <Icon {...props}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></Icon>;
+        const ArrowLeft = (props) => <Icon {...props}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></Icon>;
+        const Loader2 = (props) => <Icon {...props}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></Icon>;
+        const Box = (props) => <Icon {...props}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></Icon>;
+        const ShoppingBag = (props) => <Icon {...props}><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" x2="21" y1="6" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></Icon>;
+
+        // --- Constants ---
+        // NEW FLOW: Type -> Identity/Quals -> Shop Info -> Settlement -> Virtual Showroom -> Review
+        const STEPS = [
+            { id: 1, title: '商家类型', icon: Store },
+            { id: 2, title: '主体核验', icon: ShieldCheck },
+            { id: 3, title: '店铺信息', icon: Box },
+            { id: 4, title: '结算配置', icon: CreditCard },
+            { id: 5, title: '虚拟展厅', icon: Building2 }, // New Step
+            { id: 6, title: '提交审核', icon: FileText },
+        ];
+
+        const MERCHANT_TYPES = [
+            { id: 'enterprise', title: '企业商家', desc: '拥有营业执照的企业主体，适合品牌商/经销商', recommended: true, icon: Building2 },
+            { id: 'individual', title: '个体工商户', desc: '无营业执照的个人经营者，前期仅需身份证核验', recommended: false, icon: User },
+        ];
+
+        const SHOWROOM_PACKAGES = [
+            { id: 'standard', name: '标准版展厅', price: '¥998/年', features: ['商品容量 50 个', '基础装修模板', '标准客服支持'], color: 'blue' },
+            { id: 'pro', name: '专业版展厅', price: '¥2998/年', features: ['商品容量 500 个', '3D 全景展示', '高级装修模板', '专属运营顾问'], recommended: true, color: 'indigo' },
+            { id: 'flagship', name: '旗舰版展厅', price: '¥5998/年', features: ['商品容量 无限', 'VR 沉浸式体验', '定制化装修', '品牌营销资源包'], color: 'purple' },
+        ];
+
+        // --- Components ---
+
+        const Header = () => (
+            <header className="bg-white shadow-sm fixed w-full top-0 z-50 h-16 flex items-center justify-between px-4 md:px-8">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+                        <Store size={20} />
+                    </div>
+                    <div>
+                        <h1 className="font-bold text-gray-800 text-lg leading-tight">超元纬度</h1>
+                        <p className="text-xs text-gray-500">商家工作台</p>
+                    </div>
+                    <div className="hidden md:block h-6 w-px bg-gray-200 mx-4"></div>
+                    <span className="hidden md:block text-gray-700 font-medium">商家入驻申请</span>
+                </div>
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+                        <div className="w-5 h-5 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full flex items-center justify-center text-white text-xs font-bold">U</div>
+                        <span className="text-gray-700 font-medium">已登录: User_123</span>
+                    </div>
+                    <a href="#" className="hover:text-blue-600 flex items-center gap-1">
+                        <LogOut size={14} /> 退出
+                    </a>
+                </div>
+            </header>
+        );
+
+        const StepBar = ({ currentStep }) => {
+            return (
+                <div className="bg-white p-4 shadow-sm mb-6 rounded-lg sticky top-20 z-40 mx-4 lg:mx-auto max-w-6xl border border-gray-100">
+                    {/* PC View */}
+                    <div className="hidden md:flex justify-between items-center relative">
+                        <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-100 -z-0 rounded-full"></div>
+                        <div 
+                            className="absolute top-1/2 left-0 h-1 bg-blue-600 -z-0 transition-all duration-500 rounded-full"
+                            style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}
+                        ></div>
+
+                        {STEPS.map((step) => {
+                            const isActive = currentStep === step.id;
+                            const isCompleted = currentStep > step.id;
+                            const Icon = step.icon;
+                            
+                            return (
+                                <div key={step.id} className="relative z-10 flex flex-col items-center group">
+                                    <div 
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300
+                                            ${isActive ? 'bg-blue-600 border-blue-600 text-white shadow-lg scale-110' : 
+                                              isCompleted ? 'bg-white border-blue-600 text-blue-600' : 'bg-white border-gray-200 text-gray-300'}
+                                        `}
+                                    >
+                                        {isCompleted ? <CheckCircle size={20} /> : <Icon size={18} />}
+                                    </div>
+                                    <span 
+                                        className={`mt-2 text-xs font-medium transition-colors
+                                            ${isActive ? 'text-blue-700 font-bold' : isCompleted ? 'text-blue-600' : 'text-gray-400'}
+                                        `}
+                                    >
+                                        {step.title}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                     {/* Mobile View */}
+                     <div className="md:hidden flex items-center justify-between">
+                         <div className="flex items-center gap-2">
+                             <div className="text-blue-600 font-bold text-lg">Step {currentStep}</div>
+                             <div className="h-4 w-px bg-gray-300"></div>
+                             <div className="text-gray-700 text-sm font-medium">{STEPS[currentStep-1]?.title}</div>
+                         </div>
+                         <div className="text-xs text-gray-400">
+                            {currentStep} / {STEPS.length}
+                         </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const InputGroup = ({ label, required, children, subLabel }) => (
+            <div className="mb-5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    {label} {required && <span className="text-red-500">*</span>}
+                    {subLabel && <span className="text-xs text-gray-400 font-normal ml-2">{subLabel}</span>}
+                </label>
+                {children}
+            </div>
+        );
+
+        const FileUpload = ({ label, required, subText, hidden }) => {
+            if (hidden) return null;
+            return (
+                <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {label} {required && <span className="text-red-500">*</span>}
+                    </label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-blue-500 hover:bg-blue-50 transition-colors cursor-pointer text-center group bg-white">
+                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-400 group-hover:text-blue-600 group-hover:bg-white transition-colors">
+                            <Upload size={24} />
+                        </div>
+                        <p className="text-sm text-gray-600 font-medium">点击上传文件</p>
+                        <p className="text-xs text-gray-400 mt-1">{subText || '支持 JPG/PNG, Max 5MB'}</p>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Main App ---
+        const App = () => {
+            const [currentStep, setCurrentStep] = useState(1);
+            const [isLoading, setIsLoading] = useState(false);
+            const [formData, setFormData] = useState({
+                type: 'enterprise',
+                showroom: 'pro',
+                agreed: false
+            });
+            const [auditStatus, setAuditStatus] = useState('pending');
+
+            const nextStep = () => {
+                setIsLoading(true);
+                setTimeout(() => {
+                    setIsLoading(false);
+                    setCurrentStep(prev => prev + 1);
+                    window.scrollTo(0, 0);
+                }, 500);
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => prev - 1);
+                window.scrollTo(0, 0);
+            };
+
+            // Step 1: Merchant Type Selection
+            const renderStep1 = () => (
+                <div className="max-w-4xl mx-auto fade-in">
+                    <div className="text-center mb-8">
+                        <h2 className="text-2xl font-bold text-gray-900">选择商家类型</h2>
+                        <p className="text-gray-500 mt-2">请根据您的实际经营主体情况选择</p>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+                        {MERCHANT_TYPES.map(type => (
+                            <div 
+                                key={type.id}
+                                onClick={() => setFormData({...formData, type: type.id})}
+                                className={`relative cursor-pointer rounded-xl border-2 p-8 transition-all duration-300 hover:shadow-xl
+                                    ${formData.type === type.id ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-100' : 'border-gray-200 bg-white hover:border-blue-200'}
+                                `}
+                            >
+                                {type.recommended && (
+                                    <span className="absolute top-0 right-0 bg-red-500 text-white text-xs px-3 py-1 rounded-bl-lg rounded-tr-md font-medium">推荐</span>
+                                )}
+                                <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-6 ${formData.type === type.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                                    <type.icon size={28} />
+                                </div>
+                                <h3 className="font-bold text-xl text-gray-900 mb-3">{type.title}</h3>
+                                <p className="text-sm text-gray-500 leading-relaxed mb-6">{type.desc}</p>
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                                        <CheckCircle size={14} className="text-green-500"/> 
+                                        {type.id === 'enterprise' ? '需营业执照' : '无需营业执照 (试运营)'}
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                                        <CheckCircle size={14} className="text-green-500"/> 
+                                        {type.id === 'enterprise' ? '对公账户结算' : '支持法人个人账户'}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+
+            // Step 2: Identity Verification (Dynamic based on Type)
+            const renderStep2 = () => {
+                const isEnterprise = formData.type === 'enterprise';
+                return (
+                    <div className="max-w-3xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-sm border border-gray-100 fade-in">
+                        <h2 className="text-xl font-bold text-gray-800 mb-2">主体核验</h2>
+                        <p className="text-sm text-gray-500 mb-8 pb-4 border-b">
+                            {isEnterprise ? '请填写企业营业执照信息' : '请进行个人实名认证，个体户前期暂免营业执照'}
+                        </p>
+                        
+                        {/* Enterprise Fields */}
+                        {isEnterprise && (
+                            <div className="space-y-6 mb-8">
+                                <div className="bg-blue-50 p-4 rounded-lg flex items-start gap-3">
+                                    <Building2 className="text-blue-600 mt-1" size={18} />
+                                    <div>
+                                        <h4 className="font-bold text-blue-800 text-sm">企业资质要求</h4>
+                                        <p className="text-xs text-blue-600 mt-1">请上传最新的三证合一营业执照，确保文字清晰可见。</p>
+                                    </div>
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <InputGroup label="企业名称" required><input className="w-full px-4 py-2 border rounded-lg focus:border-blue-500 outline-none" placeholder="与执照一致" /></InputGroup>
+                                    <InputGroup label="统一社会信用代码" required><input className="w-full px-4 py-2 border rounded-lg focus:border-blue-500 outline-none" placeholder="18位代码" /></InputGroup>
+                                </div>
+                                <FileUpload label="营业执照 (副本)" required />
+                            </div>
+                        )}
+
+                        {/* Individual Fields (Always shown for verification) */}
+                        <div className="space-y-6">
+                             <div className="bg-green-50 p-4 rounded-lg flex items-start gap-3">
+                                <User className="text-green-600 mt-1" size={18} />
+                                <div>
+                                    <h4 className="font-bold text-green-800 text-sm">{isEnterprise ? '法人信息' : '经营者实名信息'}</h4>
+                                    <p className="text-xs text-green-600 mt-1">需上传本人的身份证正反面进行核验。</p>
+                                </div>
+                            </div>
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <InputGroup label={isEnterprise ? "法人姓名" : "经营者姓名"} required><input className="w-full px-4 py-2 border rounded-lg focus:border-blue-500 outline-none" /></InputGroup>
+                                <InputGroup label="身份证号" required><input className="w-full px-4 py-2 border rounded-lg focus:border-blue-500 outline-none" /></InputGroup>
+                            </div>
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <FileUpload label="身份证人像面" required subText="请上传头像面" />
+                                <FileUpload label="身份证国徽面" required subText="请上传国徽面" />
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // Step 3: Store Info
+            const renderStep3 = () => (
+                <div className="max-w-3xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-sm border border-gray-100 fade-in">
+                    <h2 className="text-xl font-bold text-gray-800 mb-8 pb-4 border-b">店铺经营信息</h2>
+                    
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <InputGroup label="店铺名称" required><input className="w-full px-4 py-2 border rounded-lg focus:border-blue-500 outline-none" placeholder="建议包含品牌名+类目" /></InputGroup>
+                        <InputGroup label="主营类目" required>
+                             <select className="w-full px-4 py-2.5 border rounded-lg bg-white outline-none">
+                                <option>请选择</option>
+                                <option>服饰鞋包</option>
+                                <option>美妆个护</option>
+                                <option>数码家电</option>
+                            </select>
+                        </InputGroup>
+                    </div>
+
+                    <InputGroup label="经营范围描述" required subLabel="(不超过200字)">
+                        <textarea className="w-full border rounded-lg px-4 py-3 focus:border-blue-500 outline-none" rows="3" placeholder="简要描述您计划销售的商品类型..."></textarea>
+                    </InputGroup>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <InputGroup label="发货地址" required><input className="w-full px-4 py-2 border rounded-lg focus:border-blue-500 outline-none" placeholder="省/市/区" /></InputGroup>
+                        <InputGroup label="联系电话" required><input className="w-full px-4 py-2 border rounded-lg focus:border-blue-500 outline-none" /></InputGroup>
+                    </div>
+                </div>
+            );
+
+            // Step 4: Settlement
+            const renderStep4 = () => (
+                <div className="max-w-3xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-sm border border-gray-100 fade-in">
+                    <h2 className="text-xl font-bold text-gray-800 mb-6">结算账户配置</h2>
+                     <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-3">账户类型</label>
+                        <div className="flex gap-4">
+                             <div className={`flex items-center gap-2 px-4 py-3 border rounded-lg cursor-pointer ${formData.type === 'enterprise' ? 'bg-blue-50 border-blue-500' : 'bg-gray-50 opacity-60'}`}>
+                                <div className={`w-4 h-4 rounded-full border ${formData.type === 'enterprise' ? 'border-4 border-blue-600' : 'border-gray-400'}`}></div>
+                                <div>
+                                    <span className="font-medium text-gray-800 block text-sm">对公账户</span>
+                                    <span className="text-xs text-gray-500">企业商家必选</span>
+                                </div>
+                             </div>
+                             <div className={`flex items-center gap-2 px-4 py-3 border rounded-lg cursor-pointer ${formData.type === 'individual' ? 'bg-blue-50 border-blue-500' : 'bg-gray-50 opacity-60'}`}>
+                                <div className={`w-4 h-4 rounded-full border ${formData.type === 'individual' ? 'border-4 border-blue-600' : 'border-gray-400'}`}></div>
+                                <div>
+                                    <span className="font-medium text-gray-800 block text-sm">法人私户</span>
+                                    <span className="text-xs text-gray-500">个体户专用</span>
+                                </div>
+                             </div>
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        <InputGroup label="银行账号" required><input className="w-full px-4 py-2 border rounded-lg outline-none focus:border-blue-500" /></InputGroup>
+                        <InputGroup label="开户银行" required>
+                             <select className="w-full px-4 py-2 border rounded-lg bg-white outline-none">
+                                <option>中国工商银行</option>
+                                <option>招商银行</option>
+                            </select>
+                        </InputGroup>
+                    </div>
+                </div>
+            );
+
+            // Step 5: Virtual Showroom (New)
+            const renderStep5 = () => (
+                <div className="max-w-5xl mx-auto fade-in">
+                    <div className="text-center mb-10">
+                        <h2 className="text-2xl font-bold text-gray-900">购买虚拟展厅</h2>
+                        <p className="text-gray-500 mt-2">开通您的 3D 沉浸式店铺，提升商品转化率</p>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-6 px-2">
+                        {SHOWROOM_PACKAGES.map(pkg => (
+                            <div 
+                                key={pkg.id} 
+                                onClick={() => setFormData({...formData, showroom: pkg.id})}
+                                className={`pricing-card relative bg-white rounded-2xl p-6 border transition-all duration-300 cursor-pointer
+                                    ${formData.showroom === pkg.id ? `border-${pkg.color}-500 ring-2 ring-${pkg.color}-100 shadow-xl` : 'border-gray-200 hover:border-gray-300'}
+                                `}
+                            >
+                                {pkg.recommended && (
+                                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs px-4 py-1 rounded-full font-bold shadow-md">
+                                        最受欢迎
+                                    </div>
+                                )}
+                                <div className={`text-${pkg.color}-600 font-bold mb-2 uppercase tracking-wide text-xs`}>{pkg.name}</div>
+                                <div className="text-3xl font-bold text-gray-900 mb-4">{pkg.price}</div>
+                                
+                                <ul className="space-y-3 mb-8">
+                                    {pkg.features.map((feat, i) => (
+                                        <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
+                                            <div className={`w-1.5 h-1.5 rounded-full bg-${pkg.color}-500`}></div>
+                                            {feat}
+                                        </li>
+                                    ))}
+                                </ul>
+
+                                <div className={`w-full py-2.5 rounded-lg text-center font-bold text-sm transition-colors
+                                    ${formData.showroom === pkg.id ? `bg-${pkg.color}-600 text-white` : 'bg-gray-100 text-gray-500 group-hover:bg-gray-200'}
+                                `}>
+                                    {formData.showroom === pkg.id ? '已选择' : '选择此套餐'}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+
+            // Step 6: Review & Submit
+            const renderStep6 = () => (
+                <div className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-lg fade-in">
+                    <div className="text-center mb-6">
+                        <FileText size={48} className="mx-auto text-blue-600 mb-4" />
+                        <h2 className="text-2xl font-bold text-gray-900">入驻申请确认</h2>
+                        <p className="text-gray-500 mt-1">请确认已选购 <span className="text-blue-600 font-bold">{SHOWROOM_PACKAGES.find(p => p.id === formData.showroom)?.name}</span> 并提交审核</p>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-lg mb-6 text-sm text-gray-600 space-y-2">
+                        <div className="flex justify-between"><span>商家类型:</span> <span className="font-medium text-gray-900">{MERCHANT_TYPES.find(t => t.id === formData.type)?.title}</span></div>
+                        <div className="flex justify-between"><span>展厅版本:</span> <span className="font-medium text-gray-900">{SHOWROOM_PACKAGES.find(p => p.id === formData.showroom)?.name}</span></div>
+                        <div className="flex justify-between"><span>预付费用:</span> <span className="font-bold text-blue-600">{SHOWROOM_PACKAGES.find(p => p.id === formData.showroom)?.price}</span></div>
+                    </div>
+
+                    <label className="flex items-start gap-3 p-4 border border-gray-200 rounded-lg mb-6 cursor-pointer hover:bg-gray-50">
+                        <input 
+                            type="checkbox" 
+                            checked={formData.agreed}
+                            onChange={(e) => setFormData({...formData, agreed: e.target.checked})}
+                            className="w-5 h-5 text-blue-600 rounded mt-0.5" 
+                        />
+                        <span className="text-sm text-gray-700">
+                            我已阅读并同意《平台入驻协议》及《虚拟展厅服务条款》，确认提交的信息真实有效。
+                        </span>
+                    </label>
+
+                    <button 
+                        onClick={() => {
+                            if(!formData.agreed) return alert('请先勾选同意协议');
+                            setAuditStatus('processing');
+                            nextStep();
+                        }}
+                        className={`w-full py-3.5 rounded-lg font-bold text-lg shadow-md transition-all
+                            ${formData.agreed ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}
+                        `}
+                    >
+                        支付并提交审核
+                    </button>
+                </div>
+            );
+
+            // Step 7: Result
+            const renderStatus = () => {
+                if (auditStatus === 'processing') {
+                   return (
+                       <div className="max-w-2xl mx-auto bg-white p-12 rounded-xl shadow-lg text-center fade-in mt-10">
+                            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <Clock size={40} className="text-blue-600" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">支付成功，资料审核中</h2>
+                            <p className="text-gray-500 mb-8">您的虚拟展厅已预定，资质审核将在 1-3 个工作日内完成。</p>
+                            <div className="mt-8 pt-6 border-t border-dashed">
+                                <p className="text-xs text-gray-400 mb-2">[演示控制]</p>
+                                <div className="flex justify-center gap-4">
+                                    <button onClick={() => setAuditStatus('approved')} className="px-3 py-1 bg-green-100 text-green-700 rounded text-xs">模拟：审核通过</button>
+                                    <button onClick={() => setAuditStatus('rejected')} className="px-3 py-1 bg-red-100 text-red-700 rounded text-xs">模拟：审核驳回</button>
+                                </div>
+                            </div>
+                       </div>
+                   ) 
+                }
+
+                if (auditStatus === 'approved') {
+                    return (
+                        <div className="max-w-2xl mx-auto bg-white p-12 rounded-xl shadow-lg text-center fade-in mt-10 border-t-4 border-green-500">
+                             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <ShoppingBag size={40} className="text-green-600" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">入驻成功！</h2>
+                            <p className="text-gray-500 mb-8">您的虚拟展厅已开通，请立即前往后台上架商品。</p>
+                            <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 shadow-lg transition-transform hover:-translate-y-1 flex items-center gap-2 mx-auto">
+                                <Box size={20}/> 进入后台上架商品
+                            </button>
+                        </div>
+                    )
+                }
+
+                if (auditStatus === 'rejected') {
+                     return (
+                        <div className="max-w-2xl mx-auto bg-white p-12 rounded-xl shadow-lg text-center fade-in mt-10 border-t-4 border-red-500">
+                            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <AlertCircle size={40} className="text-red-600" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">审核未通过</h2>
+                            <p className="text-gray-500 mb-6">如有退款需求请联系客服，修改资料请点击下方按钮。</p>
+                            <div className="bg-red-50 border border-red-100 p-4 rounded-lg text-left mb-8">
+                                <p className="text-red-800 text-sm font-bold mb-1">驳回原因：</p>
+                                <p className="text-red-700 text-sm">身份证模糊，无法识别文字信息。</p>
+                            </div>
+                            <button onClick={() => {setCurrentStep(2); setAuditStatus('pending');}} className="bg-white border border-gray-300 text-gray-700 px-8 py-3 rounded-lg font-bold hover:bg-gray-50 transition-all">
+                                修改资料
+                            </button>
+                        </div>
+                    )
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col pb-10">
+                    <Header />
+                    <main className="flex-grow pt-24 px-4">
+                        {currentStep < 7 && <StepBar currentStep={currentStep} />}
+                        <div className="mx-auto w-full">
+                            {currentStep === 1 && renderStep1()}
+                            {currentStep === 2 && renderStep2()}
+                            {currentStep === 3 && renderStep3()}
+                            {currentStep === 4 && renderStep4()}
+                            {currentStep === 5 && renderStep5()}
+                            {currentStep === 6 && renderStep6()}
+                            {currentStep === 7 && renderStatus()}
+                        </div>
+                        {currentStep < 6 && (
+                            <div className="max-w-3xl mx-auto mt-8 flex justify-between">
+                                <button 
+                                    onClick={prevStep}
+                                    disabled={currentStep === 1}
+                                    className={`px-6 py-2.5 border border-gray-300 rounded-lg text-gray-600 font-medium transition-colors flex items-center gap-2
+                                        ${currentStep === 1 ? 'opacity-0 pointer-events-none' : 'hover:bg-white'}
+                                    `}
+                                >
+                                    <ArrowLeft size={16} /> 上一步
+                                </button>
+                                <button 
+                                    onClick={nextStep}
+                                    disabled={isLoading}
+                                    className="px-8 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-70"
+                                >
+                                    {isLoading ? <Loader2 className="animate-spin" size={18}/> : null}
+                                    {isLoading ? '处理中...' : '下一步'} 
+                                    {!isLoading && <ChevronRight size={18} />}
+                                </button>
+                            </div>
+                        )}
+                    </main>
+                    <footer className="bg-gray-50 border-t py-8 mt-auto text-center text-gray-400 text-xs">
+                        © 2024 Mall Platform Inc. All rights reserved.
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
